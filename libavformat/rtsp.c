@@ -691,6 +691,21 @@ static void sdp_parse_line(AVFormatContext *s, SDPParseState *s1,
                     }
                 }
             }
+        } else if (av_strstart(p, "extmap:", &p)) {
+            char *end;
+            int id;
+            id = strtol(p, &end, 10);
+            if (p == end) {
+                break;
+            }
+            p = end;
+
+            get_word(buf1, sizeof(buf1), &p);
+
+            if (!strcmp(buf1, "urn:ietf:params:rtp-hdrext:ssrc-audio-level")) {
+                rtsp_st = rt->rtsp_streams[rt->nb_rtsp_streams - 1];
+                rtsp_st->ssrc_audio_level_ext_id = id;
+            }
         } else {
             if (rt->server_type == RTSP_SERVER_WMS)
                 ff_wms_parse_sdp_a_line(s, p);
@@ -868,6 +883,7 @@ int ff_rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
                s->iformat) {
         RTPDemuxContext *rtpctx = rtsp_st->transport_priv;
         rtpctx->ssrc = rtsp_st->ssrc;
+        rtpctx->ssrc_audio_level_ext_id = rtsp_st->ssrc_audio_level_ext_id;
         if (rtsp_st->dynamic_handler) {
             ff_rtp_parse_set_dynamic_protocol(rtsp_st->transport_priv,
                                               rtsp_st->dynamic_protocol_context,

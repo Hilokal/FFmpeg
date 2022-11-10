@@ -694,6 +694,79 @@ static void finalize_packet(RTPDemuxContext *s, AVPacket *pkt, uint32_t timestam
                    s->base_timestamp;
 }
 
+
+static const uint8_t* find_header_ext_data(int id, const uint8_t *buf, uint8_t *len) {
+    int buflen = (AV_RB16(buf + 2)) * 4;
+
+    const uint8_t *p = buf + 4;
+    int idx = 0;
+    int this_id;
+    int this_len;
+
+    // This is a one-byte extention format, as defined by RFC rfc5285
+    if (buf[0] == 0xbe && buf[1] == 0xde) {
+        while (idx + 1 < buflen) {
+            if (p[idx] == 0) {
+                idx++; // skip padding
+            } else {
+                this_id = p[idx] >> 4;
+                this_len = (p[idx] & 0xf) + 1;
+
+                // spec says 15 is reserved
+                if (this_id == 15) {
+                    break; // reject
+                }
+
+                if (this_id == id) {
+                    if (this_len > buflen - idx - 1) {
+                        break; // reject
+                    }
+
+                    if (len != NULL)
+                        *len = this_len;
+
+                    return p + idx + 1;
+                }
+
+                idx += 1 + this_len;
+            }
+        }
+    } else if (buf[0] == 0x10 && (buf[1] & 0xff) == 0) {
+        // This is a two-byte extention format
+        while (idx + 1 < buflen) {
+            if (p[idx] == 0) {
+                idx++; // Skip padding
+            } else {
+                this_id = p[idx];
+                this_len = p[idx + 1];
+
+                // spec says 15 is reserved
+                if (this_id == 15) {
+                    break; // reject
+                }
+
+                if (this_id == id) {
+                    if (this_len > buflen - idx - 2) {
+                        break; // reject
+                    }
+
+                    if (len != NULL)
+                        *len = this_len;
+                    return p + idx + 2;
+                }
+
+                idx += 2 + this_len;
+            }
+        }
+    }
+
+    if (len != NULL)
+        *len = 0;
+
+    return NULL;
+}
+
+
 static int rtp_parse_packet_internal(RTPDemuxContext *s, AVPacket *pkt,
                                      const uint8_t *buf, int len)
 {
@@ -703,6 +776,7 @@ static int rtp_parse_packet_internal(RTPDemuxContext *s, AVPacket *pkt,
     AVStream *st;
     uint32_t timestamp;
     int rv = 0;
+    const uint8_t *audio_level_data = NULL;
 
     csrc         = buf[0] & 0x0f;
     ext          = buf[0] & 0x10;
@@ -753,6 +827,11 @@ static int rtp_parse_packet_internal(RTPDemuxContext *s, AVPacket *pkt,
 
         if (len < ext)
             return -1;
+
+        if (s->ssrc_audio_level_ext_id) {
+            audio_level_data = find_header_ext_data(s->ssrc_audio_level_ext_id, buf, NULL);
+        }
+
         // skip past RTP header extension
         len -= ext;
         buf += ext;
@@ -773,6 +852,14 @@ static int rtp_parse_packet_internal(RTPDemuxContext *s, AVPacket *pkt,
 
     // now perform timestamp things....
     finalize_packet(s, pkt, timestamp);
+
+    if (audio_level_data) {
+        AVAudioLevel *side_data = (struct AVAudioLevel *)av_packet_new_side_data(pkt, AV_PKT_DATA_SSRC_AUDIO_LEVEL, sizeof(AVAudioLevel));
+        if (side_data) {
+            side_data->voice = ((*audio_level_data & 0x80) == 0x80);
+            side_data->level = -(*audio_level_data & 0x7f);
+        }
+    }
 
     return rv;
 }

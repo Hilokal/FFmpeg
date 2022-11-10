@@ -181,6 +181,21 @@ typedef struct AVProducerReferenceTime {
 } AVProducerReferenceTime;
 
 /**
+ * Audio level structure from the ssrc-audio-level RTP header extension.
+ */
+typedef struct AVAudioLevel {
+    /**
+     * Audio level for this packet, measured in dBov: -127 - 0
+     */
+    int8_t level;
+
+    /**
+     * Set to 1 if the encoder believes this packet contains voice.
+     */
+    int voice;
+} AVAudioLevel;
+
+/**
  * Encode extradata length to a buffer. Used by xiph codecs.
  *
  * @param s buffer to write to; must be at least (v/255+1) bytes long

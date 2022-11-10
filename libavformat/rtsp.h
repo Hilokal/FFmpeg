@@ -482,6 +482,8 @@ typedef struct RTSPStream {
 
     char crypto_suite[40];
     char crypto_params[100];
+
+    int ssrc_audio_level_ext_id;
 } RTSPStream;
 
 void ff_rtsp_parse_line(AVFormatContext *s,

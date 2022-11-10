@@ -188,6 +188,11 @@ struct RTPDemuxContext {
     /* dynamic payload stuff */
     const RTPDynamicProtocolHandler *handler;
     PayloadContext *dynamic_protocol_context;
+
+    /**
+     * RFC 6464 header extension id
+     */
+    int ssrc_audio_level_ext_id;
 };
 
 /**

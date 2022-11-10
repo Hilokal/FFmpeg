@@ -300,6 +300,11 @@ enum AVPacketSideDataType {
     AV_PKT_DATA_DYNAMIC_HDR10_PLUS,
 
     /**
+     * Audio Level and VAD data from the RTP header extension as defined by RFC 6464.
+     */
+    AV_PKT_DATA_SSRC_AUDIO_LEVEL,
+
+    /**
      * The number of side data types.
      * This is not part of the public API/ABI in the sense that it may
      * change when new side data types are added.
