@@ -1571,6 +1571,22 @@ int avio_get_dyn_buf(AVIOContext *s, uint8_t **pbuffer)
     return d->size;
 }
 
+void avio_set_dyn_buf(AVIOContext *s, uint8_t *buffer, int allocated_size)
+{
+    DynBuffer *d;
+    if (!s) {
+        return;
+    }
+    d = s->opaque;
+
+    if (d->buffer != NULL && d->buffer != buffer) {
+      av_free(d->buffer);
+    }
+
+    d->buffer = buffer;
+    d->allocated_size = allocated_size;
+}
+
 void ffio_reset_dyn_buf(AVIOContext *s)
 {
     DynBuffer *d = s->opaque;

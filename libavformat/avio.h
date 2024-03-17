@@ -746,6 +746,17 @@ int avio_open_dyn_buf(AVIOContext **s);
 int avio_get_dyn_buf(AVIOContext *s, uint8_t **pbuffer);
 
 /**
+ * Sets the buffer that will receive bytes and be dynamically
+ * reallocated as necessary.
+ * This buffer should be allocated using av_realloc.
+ *
+ * @param s IO context
+ * @param buffer pointer to a byte buffer
+ * @param allocated_size the length of the allocated buffer
+ */
+void avio_set_dyn_buf(AVIOContext *s, uint8_t *buffer, int allocated_size);
+
+/**
  * Return the written size and a pointer to the buffer. The buffer
  * must be freed with av_free().
  * Padding of AV_INPUT_BUFFER_PADDING_SIZE is added to the buffer.
